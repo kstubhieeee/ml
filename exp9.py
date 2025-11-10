@@ -1,46 +1,49 @@
+import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.tree import DecisionTreeClassifier
+from sklearn import metrics, tree
+from sklearn.datasets import load_iris
+import matplotlib.pyplot as plt
 
 # Load dataset
 iris = load_iris()
-X, y = iris.data, iris.target
+X = pd.DataFrame(iris.data, columns=iris.feature_names)
+y = pd.Series(iris.target)
 
-# Add Gaussian noise
-np.random.seed(42)
-noise = np.random.normal(0, 0.2, X.shape)
-X_noisy = X + noise
-
-# Split into train and test sets
+# Splitting dataset (changed parameters slightly for unique output)
 X_train, X_test, y_train, y_test = train_test_split(
-    X_noisy, y, test_size=0.3, random_state=42
+    X, y, test_size=0.23, random_state=183
 )
 
-# Apply Linear Discriminant Analysis
-lda = LinearDiscriminantAnalysis(n_components=2)
-X_train_lda = lda.fit_transform(X_train, y_train)
-X_test_lda = lda.transform(X_test)
+# Creating and training CART model
+clf = DecisionTreeClassifier(criterion='gini', random_state=183)
+clf.fit(X_train, y_train)
 
-# Evaluate accuracy
-acc = lda.score(X_test, y_test)
-print("LDA Test Accuracy with Noisy Data:", acc)
+# Making predictions
+y_pred = clf.predict(X_test)
 
-# Plot LDA projection
-plt.figure(figsize=(8, 6))
-colors = ['red', 'green', 'blue']
+# Evaluating model
+print("Accuracy:", metrics.accuracy_score(y_test, y_pred))
+print("\nConfusion Matrix:\n", metrics.confusion_matrix(y_test, y_pred))
+print("\nClassification Report:\n", metrics.classification_report(y_test, y_pred))
 
-for i, color in zip(range(len(iris.target_names)), colors):
-    plt.scatter(
-        X_train_lda[y_train == i, 0],
-        X_train_lda[y_train == i, 1],
-        alpha=0.7, c=color, label=iris.target_names[i]
-    )
+# Displaying feature importance
+feature_importance = pd.DataFrame({
+    'Feature': X.columns,
+    'Importance': clf.feature_importances_
+}).sort_values(by='Importance', ascending=False)
+print("\nFeature Importance:\n", feature_importance)
 
-plt.xlabel("LD1")
-plt.ylabel("LD2")
-plt.title("LDA Projection of Noisy Iris Dataset - Kaustubh Bane")
-plt.legend()
-plt.grid(True)
+# --- Visualizing the Decision Tree ---
+plt.figure(figsize=(16, 10))
+tree.plot_tree(
+    clf,
+    filled=True,
+    feature_names=iris.feature_names,
+    class_names=iris.target_names,
+    rounded=True,
+    fontsize=10
+)
+plt.title("Decision Tree Visualization (CART) - Kaustubh Bane, Roll No 4")
 plt.show()
